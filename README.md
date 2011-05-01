@@ -121,6 +121,7 @@ Status
 ------
 
 The API implementation is still in progress. In two senses
+
 * some work remains to align it with the SDK APIs for other languages, and
 * server-side reamins to provide consistent results for analogous operations.
 
