@@ -3,104 +3,179 @@ Dydra.com Software Development Kit (SDK) for Common Lisp
 
 This is the Common Lisp software development kit
 ([SDK](https://github.com/dydra/dydra-cl)) for
-[Dydra.com][], the cloud-hosted RDF & SPARQL storage service.
+[Dydra.com][], the cloud-hosted graph store.
 
 Examples
 --------
 
-### Authenticate with an API token
-
-Access to a private repository requires authentication.
-In order to provide an explicit authentication token, call `authenticate` with the token. It is then
-bound to the global `*authentication-token*` to be used as the default value for service instances.
-The value may be reset or rebound for use in a dynamic context.
-
-    > (dydra:authenticate "my token")
-    "my token"
-
-A call to `authenticate` with a `nil` token, disables authentication, which limits access read-only
-to just public repositories. A call without an argument attempts to locate a token, first
-in the environment variable "DYDRA_TOKEN" and then in the file `~/.dydta/token`. If neither is
-present, the token is set to `nil`.
 
 Three service classes are implemented: 
 * `dydra:json-rpc-service` : uses an xml-rpc interface via json and http transport
 * `dydra:xml-rpc-service` : uses an xml-rpc interface via xml and http transport
-* `dydra:json-rest-service` : uses an http client interface via json and Dydra's Seasame endpoint.
+* `dydra:json-rest-service` : uses an http client interface via json and Dydra's Sesame endpoint.
 
-The json rpc service appears in this example, but the results for the other interfaces would be analogous.
+The json rest service is the first to be released.
+It appears in this example.
+The results for the other interfaces would be analogous.
 
-    > (setq dydra:*service* (dydra:rpc-service :authority "api.dydra.com" :account-name "jhacker"))
-    #<ORG.DATAGRAPH.DYDRA:RPC-SERVICE jhacker @ api.dydra.com {13B38359}>
 
-    > (setq dydra:*repository* (dydra:repository :id "jhacker/foaf"))
-    #<ORG.DATAGRAPH.DYDRA:REPOSITORY jhacker/foaf @ api.dydra.com {13BAF6B1}>
+### Authenticate with an API token
+
+First, in order to operate on a private repository, each request must include an authentication token.
+In order to provide an explicit authentication token, call `authenticate` with the token. It is then
+bound to the global `*authentication-token*` to be used as the default value for service instances.
+The value may be reset or rebound for use in a dynamic context.
+
+    * (dydra:authenticate "my token")
+    "my token"
+
+A call to `authenticate` with a `nil` token, disables authentication, which limits access read-only
+to just public repositories. A call without an argument attempts to locate a token, first
+in the environment variable "DYDRA_TOKEN" and then in the file `~/.dydra/token`. If neither is
+present, the token is set to `nil`, which permits operations on public repositories only.
+
+### Set up the service
+
+Next, esablish a service to mediate the connections:
+
+    * (setq dydra:*service* (dydra:json-rest-service :host "api.dydra.com" :account-name "jhacker"))
+    #<DYDRA:JSON-REST-SERVICE jhacker @ api.dydra.com[REST/JSON/HTTP] {13B38359}>
+
+### Take a look at the account's repositories
+
+    * (dydra:repositories dydra:*service*)
+
+    (((:BYTE--SIZE . 1480) (:DESCRIPTION . "") (:HOMEPAGE . "") (:NAME . "foaf")
+      (:SUMMARY . "A test repository") (:TRIPLE--COUNT . 10)
+      (:REPOSITORY--ID . "jhacker/foaf"))
+     ...)
+    200
+    * (setq dydra:*repository* (dydra:repository :id "jhacker/foaf"))
     
-### Enumerate an account's repositories
+    #<ORG.DATAGRAPH.DYDRA:REPOSITORY jhacker/foaf @ api.dydra.com[REST/JSON/HTTP] {1005206FA1}>
+    * (dydra:info dydra:*repository*)
 
-    > (dydra:repositories dydra:*service*)
-    (((:NAME . "foaf")) ... )
-    :struct
+    ((:BYTE--SIZE . 1480) (:DESCRIPTION . "") (:HOMEPAGE . "") (:NAME . "foaf")
+     (:SUMMARY . "A test repository") (:TRIPLE--COUNT . 10)
+     (:REPOSITORY--ID . "jhacker/foaf"))
+    *
+    
 
-### Create a reposiory
+### Create a new reposiory
 
-    > (setq dydra:*repository* (dydra:repository :id "jhacker/new"))
+    * (setq dydra:*repository* (dydra:repository :id "jhacker/api-test"))
     #<ORG.DATAGRAPH.DYDRA:REPOSITORY jhacker/new @ hetzner.dydra.com {13676C91}>
 
-    > (dydra::create :repository dydra:*repository*)
-    (("byte_size" :INTEGER 0) ("description" :STRING "") ("homepage" :STRING "")
-     ("name" :STRING "new") ("summary" :STRING "") ("triple_count" :INTEGER 0))
-    :STRUCT
+    * (setq dydra:*repository* (dydra:repository :id "jhacker/api-test"))
+
+    #<ORG.DATAGRAPH.DYDRA:REPOSITORY jhacker/api-test @ api.dydra.com[REST/JSON/HTTP] {1005231AF1}>
+    * (dydra::create :repository dydra:*repository*)
+
+    ((:BYTE--SIZE . 0) (:DESCRIPTION) (:HOMEPAGE) (:NAME . "api-test") (:SUMMARY)
+     (:TRIPLE--COUNT . 0) (:REPOSITORY--ID . "jhacker/api-test"))
+    201
+    *
 
 ### Import data into the repository
 
-    > (dydra:import "http://www.w3.org/People/Berners-Lee/card" :repository dydra:*repository*)
-    "d4cde500-53b3-012e-1b6a-001d92633de7"
-    :STRING
+    * (dydra:import "http://rdf.dydra.com/jhacker/foaf.nt")
+    
+    NIL
+    204
+    * (dydra:info dydra:*repository*)
+    
+    ((:BYTE--SIZE . 5585) (:DESCRIPTION) (:HOMEPAGE) (:NAME . "api-test")
+     (:SUMMARY) (:TRIPLE--COUNT . 10) (:REPOSITORY--ID . "jhacker/api-test"))
+    * (dydra:import-status )
+    
+    ((:UUID . "247c0c50-b875-012e-b85e-123138102df0") (:STATUS . "completed")
+     (:WORKING) (:TIME . "2011-09-03T16:10:19+00:00")
+     (:MESSAGE . "Completed at 2011-09-03 16:14:17 +0000") (:PCT . 100))
+    200
+    * 
 
-    > (dydra:import-status)             ; rely on the default
-    (("time" :INTEGER 1303988076) ("status" :STRING "completed")
-     ("uuid" :STRING "d4cde500-53b3-012e-1b6a-001d92633de7")
-     ("options" :STRUCT (("account" :STRING "5") ("repository" :STRING "5/280")
-                         ("url" :STRING "http://www.w3.org/People/Berners-Lee/card")
-                         ("context" :STRING "") ("base_uri" :STRING "")))
-     ("name" :STRING "Dydra::Job::ImportDataFromURL({\"account\"=>\"5\", \"repository\"=>\"5/280\", \"url\"=>\"http://www.w3.org/People/Berners-Lee/card\", \"context\"=>\"\", \"base_uri\"=>\"\"})")
-     ("num" :INTEGER 100) ("total" :INTEGER 100)
-     ("message" :STRING "Completed at 2011-04-28 12:54:38 +0200"))
-    :STRUCT
 
-### Retrieving data from a repository, in this case json/rest
+### Retrieve data from a repository
 
-    > (dydra::query "select * where {?s ?p ?o} limit 3")          ; either raw, or
+The `dydra:query` operators returns the raw decoded query result, in this case json/rest.
+
+    * (dydra:query "select * where {?s ?p ?o} limit 3")
+    
     ((:COLUMNS "s" "p" "o")
      (:ROWS
-      (((:TYPE . "uri") (:VALUE . "http://www.w3.org/People/Berners-Lee/card#i"))
-       ((:TYPE . "uri") (:VALUE . "http://xmlns.com/foaf/0.1/title"))
-       ((:TYPE . "literal") (:VALUE . "Sir")))
-      (((:TYPE . "uri") (:VALUE . "http://www.w3.org/People/Berners-Lee/"))
-       ((:TYPE . "uri") (:VALUE . "http://xmlns.com/foaf/0.1/maker"))
-       ((:TYPE . "uri") (:VALUE . "http://www.w3.org/People/Berners-Lee/card#i")))
-      (((:TYPE . "uri") (:VALUE . "http://www.w3.org/People/Berners-Lee/card#i"))
-       ((:TYPE . "uri") (:VALUE . "http://xmlns.com/foaf/0.1/phone"))
-       ((:TYPE . "uri") (:VALUE . "tel:+1-(617)-253-5702"))))
+      (((:TYPE . "uri") (:VALUE . "http://datagraph.org/jhacker/foaf"))
+       ((:TYPE . "uri")
+        (:VALUE . "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"))
+       ((:TYPE . "uri")
+        (:VALUE . "http://xmlns.com/foaf/0.1/PersonalProfileDocument")))
+      (((:TYPE . "uri") (:VALUE . "http://datagraph.org/jhacker/#self"))
+       ((:TYPE . "uri") (:VALUE . "http://xmlns.com/foaf/0.1/knows"))
+       ((:TYPE . "uri") (:VALUE . "http://ar.to/#self")))
+      (((:TYPE . "uri") (:VALUE . "http://datagraph.org/jhacker/#self"))
+       ((:TYPE . "uri") (:VALUE . "http://xmlns.com/foaf/0.1/mbox"))
+       ((:TYPE . "uri") (:VALUE . "mailto:jhacker@example.org"))))
      (:TOTAL . 3))
     200
 
-    > (dydra:map-query 'list #'(lambda (s p o) (declare (ignore p o)) s)         ; similar, but interned
-                 "select * where {?s ?p ?o} limit 10")
-    (#<PURI:URI http://www.w3.org/People/Berners-Lee/card#i>
-     #<PURI:URI http://www.w3.org/People/Berners-Lee/>
-     #<PURI:URI http://www.w3.org/People/Berners-Lee/card#i>
-     #<PURI:URI http://www.w3.org/People/Berners-Lee/card#i> #:|g24491800|
-     #:|g25059020| #<PURI:URI http://dig.csail.mit.edu/2008/webdav/timbl/foaf.rdf>
-     #<PURI:URI http://www4.wiwiss.fu-berlin.de/booksMeshup/books/006251587X>
-     #:|g24650080| #<PURI:URI http://www.w3.org/People/Berners-Lee/card#i>)
+while the `dydra:query-values` operator returns interned values
 
+    * (dydra:query-values "select * where {?s ?p ?o} limit 3")
+    
+    ((#<PURI:URI http://datagraph.org/jhacker/foaf>
+      #<PURI:URI http://www.w3.org/1999/02/22-rdf-syntax-ns#type>
+      #<PURI:URI http://xmlns.com/foaf/0.1/PersonalProfileDocument>)
+     (#<PURI:URI http://datagraph.org/jhacker/#self>
+      #<PURI:URI http://xmlns.com/foaf/0.1/knows> #<PURI:URI http://ar.to/#self>)
+     (#<PURI:URI http://datagraph.org/jhacker/#self>
+      #<PURI:URI http://xmlns.com/foaf/0.1/mbox>
+      #<PURI:URI mailto:jhacker@example.org>))
+    * (length (remove-duplicates (mapcar #'first *)))
+
+    2
+    *
+
+### Add an alternative home page
+
+    * (dydra:query "insert data  {<http://datagraph.org/jhacker/#self> <http://xmlns.com/foaf/0.1/homepage> <http://dydra.com/jhacker/>}" )
+    
+    ((:COLUMNS "result") (:ROWS (T)) (:TOTAL . 1))
+    200
+    * (dydra:query-values "select * where {?s <http://xmlns.com/foaf/0.1/homepage> ?o}" )
+    
+    ((#<PURI:URI http://datagraph.org/jhacker/#self>
+      #<PURI:URI http://dydra.com/jhacker/>)
+     (#<PURI:URI http://datagraph.org/jhacker/#self>
+      #<PURI:URI http://example.org/~jhacker/>))
+    * (dydra:query "select (count (*) as ?count) where {?s ?p ?o}" )
+    
+    ((:COLUMNS "count")
+     (:ROWS
+      (((:TYPE . "typed-literal")
+        (:DATATYPE . "http://www.w3.org/2001/XMLSchema#decimal")
+        (:VALUE . "11.0"))))
+     (:TOTAL . 1))
+    200
+    *
+
+### Clear and/or delete the repository
+
+    * (dydra:clear )                         ; clear it
+    
+    NIL
+    204
+    * (dydra:count )
+    
+    0
+    * (dydra:delete :id "jhacker/api-test")
+    
+    NIL
+    200
+    * 
 
 Dependencies
 ------------
 
-If one requres the xml rpc srevice interface, roughly fifty systems contribute to a `dydra-cl` build.
+If one requres the xml rpc service interface, roughly fifty systems contribute to a `dydra-cl` build.
 The immediate dependencies include
 
 * [cxml-rpc](https://github.com/antifuchs/cxml-rpc)
@@ -115,17 +190,14 @@ The simplest way to start is to let `quicklisp` resolve the
 dependencies and load everything from its curated sources:
 
     > (load "org/quicklisp/setup.lisp")
-    > (ql:quickload "dydra-cl")
+    > (ql:quickload "dydra")
 
 Status
 ------
 
-The API implementation is still in progress. In two senses
-
-* some work remains to align it with the SDK APIs for other languages, and
-* server-side reamins to provide consistent results for analogous operations.
-
-We expect a release by the end of week eighteen.
+The API implementation is still in progress. Work remains to align it with the SDK APIs for other languages.
+In particular, this release includes the json-rest interface only. json-rpc and xml-rpc remain to be
+reconciled.
 
 Download
 --------

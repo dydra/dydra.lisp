@@ -1,170 +1,271 @@
 Dydra.com Software Development Kit (SDK) for Common Lisp
 ========================================================
 
-This is the Common Lisp software development kit
-([SDK](https://github.com/dydra/dydra-cl)) for
-[Dydra.com][], the cloud-hosted RDF & SPARQL storage service.
+I am curious about the open-source ecosystsm.
+Particularly open-source Lisp. In the past, I have accumulated dependency information from
+system definitions and even active runtimes, but that process can demand significant resources
+to develop a detailed view of changes. A store like Dydra simplifies ths immensely.
 
-Examples
---------
+Rather than require the application to load hundreds of ASDF systems and hold the definitions in order to
+examine relationships or to be limited to those relations which
+one could express in advance, an RDF store permits to explore the relationships as one proceeds
+and to develop insights over time.
 
-### Authenticate with an API token
+Take the example, which files to compile and load, in which succession, in order to
+build a given system. Rather simple. For example, for `dydra`, a method which comes to mind
+immediately is to
 
-Access to a private repository requires authentication.
-In order to provide an explicit authentication token, call `authenticate` with the token. It is then
-bound to the global `*authentication-token*` to be used as the default value for service instances.
-The value may be reset or rebound for use in a dynamic context.
+   (load :org.datagraph.dydra)
 
-    > (dydra:authenticate "my token")
-    "my token"
+It is after all `asdf`. On the other hand, how does one
 
-A call to `authenticate` with a `nil` token, disables authentication, which limits access read-only
-to just public repositories. A call without an argument attempts to locate a token, first
-in the environment variable "DYDRA_TOKEN" and then in the file `~/.dydta/token`. If neither is
-present, the token is set to `nil`.
+- determine the files to check for susceptibility to changes to changes definitions in a given file?
+- get the full list of files necessary to build a system?
+- see what files were added to or removed between code revisions?
+- see which dependencies have changed between code revisions?
+- visualize the file and/or system dependncies for a system?
+- decide which regression tests to run for a new revision?
 
-Three service classes are implemented: 
-* `dydra:json-rpc-service` : uses an xml-rpc interface via json and http transport
-* `dydra:xml-rpc-service` : uses an xml-rpc interface via xml and http transport
-* `dydra:json-rest-service` : uses an http client interface via json and Dydra's Seasame endpoint.
-
-The json rpc service appears in this example, but the results for the other interfaces would be analogous.
-
-    > (setq dydra:*service* (dydra:rpc-service :authority "api.dydra.com" :account-name "jhacker"))
-    #<ORG.DATAGRAPH.DYDRA:RPC-SERVICE jhacker @ api.dydra.com {13B38359}>
-
-    > (setq dydra:*repository* (dydra:repository :id "jhacker/foaf"))
-    #<ORG.DATAGRAPH.DYDRA:REPOSITORY jhacker/foaf @ api.dydra.com {13BAF6B1}>
-    
-### Enumerate an account's repositories
-
-    > (dydra:repositories dydra:*service*)
-    (((:NAME . "foaf")) ... )
-    :struct
-
-### Create a reposiory
-
-    > (setq dydra:*repository* (dydra:repository :id "jhacker/new"))
-    #<ORG.DATAGRAPH.DYDRA:REPOSITORY jhacker/new @ hetzner.dydra.com {13676C91}>
-
-    > (dydra::create :repository dydra:*repository*)
-    (("byte_size" :INTEGER 0) ("description" :STRING "") ("homepage" :STRING "")
-     ("name" :STRING "new") ("summary" :STRING "") ("triple_count" :INTEGER 0))
-    :STRUCT
-
-### Import data into the repository
-
-    > (dydra:import "http://www.w3.org/People/Berners-Lee/card" :repository dydra:*repository*)
-    "d4cde500-53b3-012e-1b6a-001d92633de7"
-    :STRING
-
-    > (dydra:import-status)             ; rely on the default
-    (("time" :INTEGER 1303988076) ("status" :STRING "completed")
-     ("uuid" :STRING "d4cde500-53b3-012e-1b6a-001d92633de7")
-     ("options" :STRUCT (("account" :STRING "5") ("repository" :STRING "5/280")
-                         ("url" :STRING "http://www.w3.org/People/Berners-Lee/card")
-                         ("context" :STRING "") ("base_uri" :STRING "")))
-     ("name" :STRING "Dydra::Job::ImportDataFromURL({\"account\"=>\"5\", \"repository\"=>\"5/280\", \"url\"=>\"http://www.w3.org/People/Berners-Lee/card\", \"context\"=>\"\", \"base_uri\"=>\"\"})")
-     ("num" :INTEGER 100) ("total" :INTEGER 100)
-     ("message" :STRING "Completed at 2011-04-28 12:54:38 +0200"))
-    :STRUCT
-
-### Retrieving data from a repository, in this case json/rest
-
-    > (dydra::query "select * where {?s ?p ?o} limit 3")          ; either raw, or
-    ((:COLUMNS "s" "p" "o")
-     (:ROWS
-      (((:TYPE . "uri") (:VALUE . "http://www.w3.org/People/Berners-Lee/card#i"))
-       ((:TYPE . "uri") (:VALUE . "http://xmlns.com/foaf/0.1/title"))
-       ((:TYPE . "literal") (:VALUE . "Sir")))
-      (((:TYPE . "uri") (:VALUE . "http://www.w3.org/People/Berners-Lee/"))
-       ((:TYPE . "uri") (:VALUE . "http://xmlns.com/foaf/0.1/maker"))
-       ((:TYPE . "uri") (:VALUE . "http://www.w3.org/People/Berners-Lee/card#i")))
-      (((:TYPE . "uri") (:VALUE . "http://www.w3.org/People/Berners-Lee/card#i"))
-       ((:TYPE . "uri") (:VALUE . "http://xmlns.com/foaf/0.1/phone"))
-       ((:TYPE . "uri") (:VALUE . "tel:+1-(617)-253-5702"))))
-     (:TOTAL . 3))
-    200
-
-    > (dydra:map-query 'list #'(lambda (s p o) (declare (ignore p o)) s)         ; similar, but interned
-                 "select * where {?s ?p ?o} limit 10")
-    (#<PURI:URI http://www.w3.org/People/Berners-Lee/card#i>
-     #<PURI:URI http://www.w3.org/People/Berners-Lee/>
-     #<PURI:URI http://www.w3.org/People/Berners-Lee/card#i>
-     #<PURI:URI http://www.w3.org/People/Berners-Lee/card#i> #:|g24491800|
-     #:|g25059020| #<PURI:URI http://dig.csail.mit.edu/2008/webdav/timbl/foaf.rdf>
-     #<PURI:URI http://www4.wiwiss.fu-berlin.de/booksMeshup/books/006251587X>
-     #:|g24650080| #<PURI:URI http://www.w3.org/People/Berners-Lee/card#i>)
+or, more generally, how does one support any decisions or processes about a systems' components'
+relations, but extend beyond just `compile-file` and `load` relations. The only presently available method is to
+specialize `asdf` operation classes to extend or re-purpose the system operation machinery.
+Which is not the direct way to solve the problem unless one already understands well the internals of asdf machinery.
 
 
-Dependencies
-------------
+A better approach is to factor the dependency analysis mechanism from the operation
+mechanims and use the result of just the former to drive alternative tasks.
+An easy way to do that is to use a data store well-suited to represent relationships
+to make the dependency data available to domain-specific application logic.
 
-If one requres the xml rpc srevice interface, roughly fifty systems contribute to a `dydra-cl` build.
-The immediate dependencies include
+System Visualization
+--------------------
 
-* [cxml-rpc](https://github.com/antifuchs/cxml-rpc)
-* [closure-html](http://common-lisp.net/project/closure/closure-html/)
-* [cxml-stp](http://www.lichteblau.com/cxml-stp/)
-* [cl-json](http://common-lisp.net/project/cl-json/)
-* [puri](http://puri.b9.com/)
+One example is, how to enumerate the constituent systems required to build a given software package
+and visualize their dependencies. The necessary information is encoded in system
+declarations in the respective `depends-on` property. As it happens, each `quicklisp` release distills
+this data into a single file, `dists/quicklisp/systems.txt`. A simple transformation, on the order of
 
-The json interfaces suffice with `cl-json` and `puri`.
+    (loop for system-dependencies = (read source nil nil)
+          while system-dependencies
+          do (destructuring-bind (system-name . dependencies)
+                                 (asdf:split-string system-dependencies)
+               (dolist (dep-name dependencies)
+                 (format destination "<~a~a> <~a> <~a~a> .~%"
+                         *system-base-uri-string* system-name
+                         *depends-on-uri-string*
+                         *system-base-uri-string* dep-name))))
 
-The simplest way to start is to let `quicklisp` resolve the
-dependencies and load everything from its curated sources:
+renders it in to an RDF encoding suitable for import into a data store, as follows
 
-    > (load "org/quicklisp/setup.lisp")
-    > (ql:quickload "dydra-cl")
+(quicklisp-to-n3 #p"LIBRARY:org;quicklisp;dists;quicklisp;systems.txt"
+                 #p"LIBRARY:org;quicklisp;dists;quicklisp;systems.n3")
 
-Status
-------
+(defparameter *ql* (dydra:repository :id "quicklisp/asdf"
+                                     :service (dydra:rest-service :host "dydra.com"
+                                                                  :account-name "quicklisp")))
+(dydra:import #p"LIBRARY:org;quicklisp;dists;quicklisp;systems.n3"
+              :repository *ql*)
 
-The API implementation is still in progress. In two senses
+(setq dydra:*nodes* (make-hash-table :test 'equal))
+(defparameter *repository* (dydra:repository :id "jhacker/quicklisp"
+                                             :service (dydra:rest-service :host "hetzner.dydra.com"
+                                                                          :account-name "jhacker"
+                                                                          :token nil)))
 
-* some work remains to align it with the SDK APIs for other languages, and
-* server-side reamins to provide consistent results for analogous operations.
-
-We expect a release by the end of week eighteen.
-
-Download
---------
-
-If one needs to work with copy of the development repository, do:
-
-    $ git clone git://github.com/dydra/dydra-cl.git
+From which a straight-forward query retrieves a single dependency tree
 
 
-Mailing List
-------------
+(defun match-sp (subject predicate &key (repository *repository*) (uris *nodes*) object-type)
+  (dydra:map-query 'list #'identity
+                   (format nil "select ?o where { <~a> <~a> ?o }"
+                           subject predicate)
+                   :uris uris
+                   :repository repository))
+(defstruct (dydra::blank-node (:conc-name dydra::blank-node-)) (label))
 
-* <http://groups.google.com/group/dydra>
+(defgeneric dydra::format-term (stream object colon at)
+  (:method (stream (object puri:uri) colon at)
+    (declare (ignore colon at))
+    (format stream "<~a>" object))
+  (:method (stream (object symbol) colon at)
+    (declare (ignore colon at))
+    (case object
+      ((t nil) (format stream "~:[false~;true~]" object))
+      (t (format stream "?~a" (symbol-name object)))))
+  (:method (stream (object dydra::blank-node) colon at)
+    (declare (ignore colon at))
+    (format stream "_:~a" (dydra::blank-node-label)))
+  (:method (stream (object t) colon at)
+    (declare (ignore colon at))
+    (format stream "~s" object)))
 
-Authors
--------
+(defun dydra::write-triple-pattern (stream pattern colon at)
+  (declare (ignore colon at))
+  (format stream "~{~/dydra:write-term/ ~/dydra:write-term/ ~/dydra:write-term/~}" pattern))
 
-* [James Anderson](https://github.com/lisp) - <http://dydra.com/james>
+(defun dydra::write-graph-pattern (stream pattern colon at)
+  (declare (ignore colon at))
+  (format stream "~{~/dydra::write-triple-pattern/ .~^ ~}" pattern))
 
-Contributing
-------------
+(defun dydra::get (patterns &rest args &key repository)
+  (declare (ignore repository))
+  (apply #'dydra:select (format nil "select ~{?~a }~% where {~{~%~% ~}~%~% }"
+                                (dydra:expression-variables patterns)
+                                patterns)
+         args)
 
-* Do your best to adhere to the existing coding conventions and idioms.
-* Don't use hard tabs, and don't leave trailing whitespace on any line.
-* Don't touch the `package.lisp`, `VERSION`, or `AUTHORS` files. If you need
-  to change them, do so on your private branch only.
-* Do feel free to add yourself to the `CREDITS` file and the corresponding
-  list in the `README`. Alphabetical order applies.
+(defun match-po (predicate object &key (repository *repository*) (uris *nodes*))
+  (dydra:get `((?::s ,predicate ,object)) 
+  (dydra:map-query 'list #'identity
+                   (format nil "select ?s where { ?s <~a> <~a> }"
+                           predicate object)
+                   :uris uris
+                   :repository repository))
 
-Note: the instructions in this README, and the operation of the library
-itself, implicitly assume a Unix system (Mac OS X, Linux, or *BSD) at
-present. Patches improving Windows support are most welcome.
+(defun system-dependencies (system repository)
+  (let ((nodes (make-hash-table :test 'equal)))
+    (labels ((dependencies (system)
+               (let ((prerequisites (match-sp system *depends-on-uri-string*)))
+                 (append (reduce #'append prerequisites :key #'dependencies)
+                         (mapcar #'(lambda (prerequisite) (cons system prerequisite))
+                                 prerequisites)))))
+    (remove-duplicates (dependencies system) :from-end nil :key #'rest))))
 
-License
--------
+    > (system-dependencies (puri:uri "http://www.quicklisp.org/system/hunchentoot")
+                           *ql*)
+    ((#<PURI:URI http://www.quicklisp.org/system/hunchentoot>
+      . #<PURI:URI http://www.quicklisp.org/system/usocket>)
+     ...
+     (#<PURI:URI http://www.quicklisp.org/system/bordeaux-threads>
+      . #<PURI:URI http://www.quicklisp.org/system/alexandria>))     
 
-This is free and unencumbered public domain software. For more information,
-see <http://unlicense.org/> or the accompanying `UNLICENSE` file.
+(defgeneric graph-system-dependencies (system output &key repository)
+  (:method ((system t) (destination pathname) &rest args)
+    (with-open-file (stream destination :direction :output :if-exists :supersede :if-does-not-exist :create)
+      (apply #'graph-system-dependencies system stream args)))
 
-[RDF]:        http://www.w3.org/RDF/
-[PDD]:        http://unlicense.org/#unlicensing-contributions
-[Dydra.com]:  http://dydra.com/
+  (:method ((system-name string) (destination t) &rest args)
+    (apply #'graph-system-dependencies (puri:uri (format nil "~a~a" *system-base-uri-string* system-name))
+           destination
+           args))
+
+  (:method ((system-uri puri:uri) (destination stream) &key (repository *repository*)
+            (label "systems") ranksep)
+    (flet ((uri-label (uri)
+             (first (last (asdf:split-string (puri:uri-path uri) :separator '(#\/ #\#)))))
+           (id (system)
+               (cond ((gethash system ids))
+                     (t
+                      (setf (gethash system ids) (gensym "SYSTEM"))))))
+      (let ((dependencies (system-dependencies system-uri repository)))
+        (format destination "~&digraph ~a { ~@[ranksep=\"~d\";~]"
+                (or label (uri-label system-id))
+                ranksep)
+        (loop for (system-uri . nil) in dependencies
+              do (format destination "~&~a [ label=\"~a\" ]"
+                         (id system-uri) (uri-label system-uri)))
+        (loop for (system-uri . prerequisite-uri) in dependencies
+              do (format destination "~&~a -> ~a"
+                         (id system-uri) (id prerequisite-uri))))
+      (format destination "~% }~%"))))
+
+(defun encode-dependency-graph (dependencies destination &key (graph-id "untitled") graph-attributes
+                                             (graph-nodes (make-hash-table)) (edge-label nil))
+  (flet ((uri-label (uri)
+           (first (last (asdf:split-string (puri:uri-path uri) :separator '(#\/ #\#)))))
+         (id (system)
+           (cond ((gethash system graph-nodes))
+                 (t
+                  (setf (gethash system graph-nodes) (gensym "SYSTEM"))))))
+    (format destination "~&digraph ~a {" graph-id)
+    (loop for (attribute-id . attribute-value) in graph-attributes
+          do (format destination "~% ~a=\"~a\";" attribute-id attribute-value))
+    (format destination "~%~%// systems")
+    (loop for (system-uri . prerequisite-uri) in dependencies
+          unless (gethash system-uri graph-nodes)
+          do (format destination "~& ~a [ label=\"~a\" ];"
+                     (id system-uri) (uri-label system-uri))
+          unless (gethash prerequisite-uri graph-nodes)
+          do (format destination "~& ~a [ label=\"~a\" ];"
+                     (id prerequisite-uri) (uri-label prerequisite-uri)))
+    (format destination "~%~%// dependencies")
+    (loop for (system-uri . prerequisite-uri) in dependencies
+          do (format destination "~&~a -> ~a~@[ [ label=\"~a\" ]~];"
+                     (id system-uri) (id prerequisite-uri) edge-label))
+    (format destination "~% }~%")))
+
+#+(or)
+(let ((s1 (puri:uri "/s1")) (s2 (puri:uri "/s2")) (s3 (puri:uri "/s3")))
+  (encode-dependency-graph `((,s1 . ,s2) (,s1 . ,s3)) t :edge-label "a"))
+
+
+(defun flatten-dependency-list (dependencies)
+  (remove-duplicates (append (mapcar #'rest dependencies) (mapcar #'first dependencies)) :from-end t))
+
+(defun dependency-list-dependents (dependency-list)
+  (mapcar #'first dependency-list))
+
+(defun dependency-prerequisites (dependency-list)
+  (mapcar #'rest dependency-list))
+
+(defun revision-changed-files (&key (old-revision "^HEAD") (new-revision "HEAD"))
+  (let ((files ())
+        (git-stream
+         #+sbcl (sb-ext:process-output (process sb-ext:run-program *git-binary-pathname*
+                                                `("diff" "--name-only" old-revision new-revision)
+                                                :input nil :output :stream))
+         #+clozure (ccl:external-process-output-stream (ccl:run-program *git-binary-pathname*
+                                                `("diff" "--name-only" old-revision new-revision)
+                                                :input nil :output :stream))))
+    (unwind-protect (loop (let ((line (read-line git-stream nil nil)))
+                            (if line (push line files) (return (reverse files)))))
+      (when (open-stream-p git-stream)
+        (close git-stream)))))
+
+
+
+
+(defun definition-regression-tests (definition)
+  "Match the tests which invoke the given definition from the current *repository* and return a list of 
+ designators for the matching tests.
+
+ DEFINITION : uri : The designator for the definition
+ value : (list uri) : A list of test designators."
+
+  (dydra:collect (?::test) (dydra:match `((?::test ,*invokes-uri* ,definition)))))
+
+
+(defun file-definitions (file)
+  "Match the definitions in a given file from the current *repository* and return a list of 
+ designators for the matching definitions.
+
+ DEFINITION : uri : The designator for the file
+ value : (list uri) : A list of definition designators."
+
+  (dydra:collect (?::definition) (dydra:match `((?::definition ,*component-uri* ,file)))))
+
+
+(defun revision-regression-tests (old-revision new-revision &key ((:repository *repository*) *repository*))
+  "Given two revision identifiers, return a list of identifiers for those regression
+ tests which could be affected by the changes.
+
+ The general mechansim is to propagate dependency from the files, to the functions, to those regressions
+ active at some point when the function was active."
+
+  (let* ((delta-files (revision-changed-files old-revision new-revision))
+         (file-definitions (reduce delta-files #'append :key #'file-definitions))
+         (deinition-tests (remove-duplicates (reduce file-definitions #'append :key #'definition-regression-tests)
+                                             :from-end t)))
+    definition-tests))
+
+
+(defun run-revision-tests (
+#+(or)
+(let ((s1 (puri:uri "/s1")) (s2 (puri:uri "/s2")) (s3 (puri:uri "/s3")))
+  (compute-operation-plan `((,s1 . ,s2) (,s1 . ,s3)) 'do-it))
+
+;;; system ->
+;;;   systems[] -> system file
+;;;  read to extract
+;;;   documentation
+;;;   module/file dependency
