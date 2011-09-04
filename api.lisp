@@ -573,7 +573,7 @@
 (defgeneric dydra:info (subject &rest args)
   (:documentation "Return metadata about the Given repository or service.")
   (:method ((repository dydra::repository) &key)
-    (dydra:repository-info (dydra::repository-service repository) repository))
+    (dydra::repository-info (dydra::repository-service repository) repository))
   (:method ((arg symbol) &rest args)
     (dydra:info (apply #'dydra::repository arg args)))
   (:method ((service dydra::service) &rest args)
