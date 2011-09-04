@@ -27,8 +27,8 @@
                (:file "api")
                (:file "json-rest")
                ;; (:file "json-rpc")
-               ;; (:file "xml-rpc"))
-               )
+               ;; (:file "xml-rpc")
+               ))
 
 
 #|
