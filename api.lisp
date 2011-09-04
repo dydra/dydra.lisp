@@ -322,7 +322,7 @@
     (dydra::account-repositories service (dydra:repository-service name)))
 
   (:method ((service dydra:service) (name dydra:service))
-    (dydra::account-repositories service (dydra:service-account-name name)))
+    (dydra::account-repositories service (dydra::service-account-name name)))
 
   (:method ((service dydra:rpc-service) (name string))
     ;; rewrite the results to match the rest result structure
