@@ -237,7 +237,7 @@
 (trace drakma:http-request)             ; if you want to watch
 (dydra:authenticate "xxxx")
 
-(setq dydra:*service* (dydra:json-rest-service :host "hetzner.dydra.com" :account-name "jhacker"))
+(setq dydra:*service* (dydra:json-rest-service :host "api.dydra.com" :account-name "jhacker"))
 (dydra:info dydra:*service*)           ; service info 
 
 (setq dydra:*repository* (dydra:repository :id "jhacker/api-test"))
@@ -268,7 +268,7 @@
 ;;; query (imported w/ context
 ;;; uses application/json encoding rather than the standard www-form-urlencoded
 (dydra:query "select * where {graph ?g {?s ?p ?o}}" )          ; should be nil as there is no context
-(dydra:query "select * where {?s ?p ?o}" )     ; should be 10 solutions
+(dydra:query "select * where {?s ?p ?o}" )                     ; should be 10 solutions
 
 (dydra:map-query 'list #'(lambda (s p o) (declare (ignore p o)) s)         ; similar, but just the first 10 subjects, interned
                  "select * where {?s ?p ?o} limit 10")
