@@ -33,19 +33,16 @@
 ;;;
 ;;; parameters
 
-(defvar dydra::*service* nil
+(defvar dydra:*service* nil
   "A global value to serve as the default service instance when instantiating new repositories.")
 
-(defvar dydra::*service-class* 'dydra::json-rest-service
+(defvar dydra:*service-class* 'dydra:json-rest-service
   "The default class used by the service constructor. The initial value is json-rest-service.")
 
-(defvar dydra::*rpc-service-class* 'dydra::json-rpc-service
-  "The default class used by the rpc-service constructor. The initial value is json-rpc-service.")
-
-(defvar dydra::*repository* nil
+(defvar dydra:*repository* nil
   "A global value to serve as the default srepository argument for store operations.")
 
-(defvar dydra::*repository-class* 'dydra::repository
+(defvar dydra:*repository-class* 'dydra:repository
   "The default class used by the repository constructor. The initial value is repository.")
 
 (defvar *authentication-token*)
@@ -83,7 +80,7 @@
         (error "Unsupported file type: ~s." type))))
 
 
-(defun dydra::authenticate (&optional (new-token nil nt-s))
+(defun dydra:authenticate (&optional (new-token nil nt-s))
   "Set the authentication token as follows:
  - iff a value is provided, constraint it to be (or string null) and set the token to it.
  - otherwise
@@ -106,7 +103,7 @@
   "Iff a token is set, return it. Otherwise search for a default value, cache and return it."
   (if (boundp '*authentication-token*)
     *authentication-token*
-    (dydra::authenticate)))
+    (dydra:authenticate)))
 
 (defgeneric uri-string (uri)
   (:method ((uri string)) uri)
@@ -117,7 +114,7 @@
 ;;;
 ;;; classes
 
-(defclass dydra::service ()
+(defclass dydra:service ()
   ((url
     :initarg :url :initform (error "url is required.")
     :reader dydra::service-url
@@ -149,7 +146,7 @@
  - json-rpc-service : effects operations theough the store's json rpc interface
  - xml-rpc-service : effects operations theough the store's xml rpc interface"))
 
-(defclass dydra::rest-service (dydra::service)
+(defclass dydra:rest-service (dydra:service)
   ((protocol
     :initform :rest/http))
   (:default-initargs :path "")
@@ -158,7 +155,7 @@
  [http://www.openrdf.org/doc/sesame2/system/ch08.html#d0e168],  with extensions for Dydra-specific
  functions."))
 
-(defclass dydra::rpc-service (dydra::service)
+(defclass dydra:rpc-service (dydra:service)
   ((request-id
     :initform 0
     :accessor service-request-id
@@ -167,18 +164,18 @@
   (:documentation "An rpc-service instance specializes the service class to implement operations in
  terms of an xml-rpc service."))
 
-(defclass dydra::amqp-rpc-service (dydra::rpc-service)
+(defclass dydra::amqp-rpc-service (dydra:rpc-service)
  ()
  (:documentation "NYI"))
 
-(defclass dydra::repository ()
+(defclass dydra:repository ()
   ((service
-    :initarg :service :initform (or dydra::*service* (error "service is required."))
-    :reader dydra::repository-service
-    :type dydra::service)
+    :initarg :service :initform (or dydra:*service* (error "service is required."))
+    :reader dydra:repository-service
+    :type dydra:service)
    (id
     :initarg :id :initform (error "id is required.")
-    :reader dydra::repository-id
+    :reader dydra:repository-id
     :type string)
    (info-cache
     :initarg :info-cache :initarg :info         ; no initform to trigger retrieval
@@ -188,7 +185,7 @@
  methods in terms of rest or rpc access. In addition various metadata are cached in the repository
  instance."))
 
-(define-condition dydra::json-error (simple-error)
+(define-condition dydra:json-error (simple-error)
   ((code :initarg :code :initform 0 :reader condition-code)
    (message :initarg :message :initform "" :reader condition-message)
    (data :initarg :data :initform nil :reader condition-data))
@@ -199,7 +196,7 @@
                      (condition-message condition)))))
 
 
-(defmethod initialize-instance ((instance dydra::service) &rest args &key
+(defmethod initialize-instance ((instance dydra:service) &rest args &key
                                 host port url path)
   (declare (dynamic-extent args))
   (cond (url
@@ -210,13 +207,13 @@
          (error "Some combination of host and url is required.")))
   (apply #'call-next-method instance :url url args))
 
-(defmethod initialize-instance :after ((instance dydra::repository) &key base-uri context query-language infer)
+(defmethod initialize-instance :after ((instance dydra:repository) &key base-uri context query-language infer)
   "Declare validity for api arguments possible passed to repository constructor."
   (declare (ignore base-uri context query-language infer))
   nil)
 
 
-(defmethod print-object ((object dydra::service) stream)
+(defmethod print-object ((object dydra:service) stream)
   (print-unreadable-object (object stream :identity t :type t)
     (with-slots (url account-name protocol) object
       (format stream "~a @ ~a[~a]"
@@ -224,7 +221,7 @@
               (when (slot-boundp object 'url) (puri:uri-host url))
               (when (slot-boundp object 'protocol) protocol)))))
 
-(defmethod print-object ((object dydra::repository) stream)
+(defmethod print-object ((object dydra:repository) stream)
   (print-unreadable-object (object stream :identity t :type t)
     (with-slots (id service ) object
       (format stream "~a @ ~a[~a]"
@@ -233,7 +230,7 @@
               (when (slot-boundp object 'service) (dydra::service-protocol service))))))
 
 
-(defmethod dydra::repository-service ((service dydra::service))
+(defmethod dydra:repository-service ((service dydra:service))
   "Given a service instance, just return it."
   service)
 
@@ -248,14 +245,14 @@
     (let ((slash (or (position #\/ repository-id) (error "invalid repository id: ~s." repository-id))))
       (values (subseq repository-id 0 slash) (subseq repository-id (1+ slash)))))
 
-  (:method ((repository dydra::repository))
-    (repository-name-components (dydra::repository-id repository))))
+  (:method ((repository dydra:repository))
+    (repository-name-components (dydra:repository-id repository))))
 
 
-(defun dydra::repository-account-name (repository)
+(defun dydra:repository-account-name (repository)
   (nth-value 0 (repository-name-components repository)))
 
-(defun dydra::repository-name (repository)
+(defun dydra:repository-name (repository)
   (nth-value 1 (repository-name-components repository)))
 
 
@@ -288,7 +285,7 @@
 
 (defgeneric http-request (service url &rest args &key parameters &allow-other-keys)
   (declare (dynamic-extent args))
-  (:method ((service dydra::service) url &rest args &key parameters &allow-other-keys)
+  (:method ((service dydra:service) url &rest args &key parameters &allow-other-keys)
     (declare (dynamic-extent args))
     (let ((token (service-token service)))
       (apply #'drakma:http-request url
@@ -321,13 +318,13 @@
  In addition to a literal account name string, the second argument may be a service or a repository, in
  which case it designates the respective service;s account.")
 
-  (:method ((service dydra::service) (name dydra::repository))
-    (dydra::account-repositories service (dydra::repository-service name)))
+  (:method ((service dydra:service) (name dydra:repository))
+    (dydra::account-repositories service (dydra:repository-service name)))
 
-  (:method ((service dydra::service) (name dydra::service))
-    (dydra::account-repositories service (dydra::service-account-name name)))
+  (:method ((service dydra:service) (name dydra:service))
+    (dydra::account-repositories service (dydra:service-account-name name)))
 
-  (:method ((service dydra::rpc-service) (name string))
+  (:method ((service dydra:rpc-service) (name string))
     ;; rewrite the results to match the rest result structure
     (let ((response (rpc-call service "dydra.repository.list" `(:string ,name))))
       (loop for (account-name repository-name) in  response
@@ -346,11 +343,11 @@
  Given an rpc service, call the method dydra.repository.clear
  Given an http service, :delete the resource http://<authority>/repositories/<repository-id>/statements")
 
-  (:method ((service t) (repository dydra::repository))
+  (:method ((service t) (repository dydra:repository))
     (dydra::reset-repository-info repository)
-    (dydra::repository-clear service (dydra::repository-id repository)))
+    (dydra::repository-clear service (dydra:repository-id repository)))
 
-  (:method ((service dydra::rpc-service) (repository-id string))
+  (:method ((service dydra:rpc-service) (repository-id string))
     (rpc-call service "dydra.repository.clear" `(:string ,repository-id))))
 
 
@@ -363,11 +360,11 @@
  Given an rpc service, call the method dydra.repository.create
  Given an http service, :post the repository metadata to http://<authority>/repositories/<repository-id>")
 
-  (:method ((service t) (repository dydra::repository))
+  (:method ((service t) (repository dydra:repository))
     (dydra::reset-repository-info repository)
-    (dydra::repository-create service (dydra::repository-id repository)))
+    (dydra::repository-create service (dydra:repository-id repository)))
 
-  (:method ((service dydra::rpc-service) (repository-id string))
+  (:method ((service dydra:rpc-service) (repository-id string))
     (rpc-call service "dydra.repository.create" `(:string ,repository-id))))
 
 
@@ -380,11 +377,11 @@
  Given an rpc service, call the method dydra.repository.destroy
  Given an http service, :delete the resource http://<authority>/repositories/<repository-id>")
   
-  (:method ((service t) (repository dydra::repository))
+  (:method ((service t) (repository dydra:repository))
     ;; do not clear cached info
-    (dydra::repository-delete service (dydra::repository-id repository)))
+    (dydra::repository-delete service (dydra:repository-id repository)))
 
-  (:method ((service dydra::rpc-service) (repository-id string))
+  (:method ((service dydra:rpc-service) (repository-id string))
     (rpc-call service "dydra.repository.destroy" `(:string ,repository-id))))
 
 
@@ -397,14 +394,14 @@
  Given an rpc service, call the method dydra.repository.import
  Given an http service, :put the source resource to http://<authority>/repositories/<repository-id>/statements")
   
-  (:method ((service t) (repository dydra::repository) url &rest args)
+  (:method ((service t) (repository dydra:repository) url &rest args)
     (dydra::reset-repository-info repository)
-    (apply #'dydra::repository-import service (dydra::repository-id repository) url args))
+    (apply #'dydra::repository-import service (dydra:repository-id repository) url args))
   
   (:method ((service t) (repository t) (url string) &rest args)
     (apply #'dydra::repository-import service repository (puri::uri url) args))
 
-  (:method ((service dydra::rpc-service) (repository-id string) (resource-uri puri:uri) &key
+  (:method ((service dydra:rpc-service) (repository-id string) (resource-uri puri:uri) &key
             (context "") (base-uri ""))
     (rpc-call service "dydra.repository.import" 
               `(:string ,repository-id :string ,(uri-string resource-uri) :string ,context :string ,base-uri))))
@@ -419,10 +416,10 @@
  Given an rpc service, call the method dydra.repository.import
  Given an http service, :put the source resource to http://<authority>/repositories/<repository-id>/statements")
 
-  (:method ((service t) (repository dydra::repository))
-    (dydra::repository-import-status service (dydra::repository-id repository)))
+  (:method ((service t) (repository dydra:repository))
+    (dydra::repository-import-status service (dydra:repository-id repository)))
 
-  (:method ((service dydra::rpc-service) (repository-id string))
+  (:method ((service dydra:rpc-service) (repository-id string))
     (rpc-call service "dydra.repository.info" `(:string ,repository-id))))
 
 
@@ -437,20 +434,20 @@
 
  The result is cached in the repository instance to be returned by future invocations.")
 
-  (:method ((service t) (repository dydra::repository))
+  (:method ((service t) (repository dydra:repository))
     (if (slot-boundp repository 'info-cache)
       (repository-info-cache repository)
-      (let ((info (dydra::repository-info service (dydra::repository-id repository))))
+      (let ((info (dydra::repository-info service (dydra:repository-id repository))))
         (when info
           (setf (slot-value repository 'info-cache) info)))))
 
-  (:method ((service dydra::rpc-service) (repository-id string))
+  (:method ((service dydra:rpc-service) (repository-id string))
     (rpc-call service "dydra.repository.info" `(:string ,repository-id))))
 
 (defgeneric dydra::reset-repository-info (repository-instance)
   (:documentation "Clear cached info from a repository instance.")
 
-  (:method ((repository dydra::repository))
+  (:method ((repository dydra:repository))
     (slot-makunbound repository 'info-cache)))
 
 
@@ -466,11 +463,11 @@
  Given an rpc service, call the method dydra.repository.import-status
  Given an http service, :get http://<authority>/repositories/<repository-id>/status")
 
-  (:method ((service t) (repository dydra::repository) query &rest args)
+  (:method ((service t) (repository dydra:repository) query &rest args)
     (declare (dynamic-extent args))
-    (apply #'dydra::repository-query service (dydra::repository-id repository) query args))
+    (apply #'dydra::repository-query service (dydra:repository-id repository) query args))
 
-  (:method ((service dydra::rpc-service) (repository-id string) query &rest args
+  (:method ((service dydra:rpc-service) (repository-id string) query &rest args
             &key (query-language nil ql-s) (infer nil i-s) &allow-other-keys)
     (apply #'rpc-call service "dydra.repository.query"
            `(:string ,repository-id :string ,query
@@ -483,25 +480,25 @@
 
 
 (defgeneric dydra::service-info (service)
-  (:method ((repository dydra::repository))
-    (dydra::service-info (dydra::repository-service repository)))
+  (:method ((repository dydra:repository))
+    (dydra::service-info (dydra:repository-service repository)))
 
-  (:method ((service dydra::rpc-service))
+  (:method ((service dydra:rpc-service))
     (rpc-call service "dydra.account.info" `(:string ,(dydra::service-account-name service)))))
 
 
 ;;;
 ;;; interface operators
 
-(defun call-with-effective-repository (function &rest args &key (repository dydra::*repository*)
-                                                (service dydra::*service*) id
+(defun call-with-effective-repository (function &rest args &key (repository dydra:*repository*)
+                                                (service dydra:*service*) id
                                                 &allow-other-keys)
   (cond (id
          (funcall function (dydra:repository :id id :service service)))
         (repository
          (funcall function repository))
         (t
-         (funcall function (apply #'dydra::repository args)))))
+         (funcall function (apply #'dydra:repository args)))))
 
 (defun remove-property (list &rest keywords)
   (declare (dynamic-extent keywords))
@@ -520,65 +517,65 @@
        (apply #'call-with-effective-repository #',op ,args))))
 
 
-(defun dydra::clear (&rest args &key repository service host port id)
+(defun dydra:clear (&rest args &key repository service host port id)
   "Given a REPOSITORY, delete all statements from it."
   (declare (dynamic-extent args)
            (ignore repository service host port id))
   (with-effective-repository (the-repository args)
-    (dydra::repository-clear (dydra::repository-service the-repository) the-repository)))
+    (dydra::repository-clear (dydra:repository-service the-repository) the-repository)))
 
 
-(defun dydra::count (&rest args &key repository service host port id)
+(defun dydra:count (&rest args &key repository service host port id)
   "Given a REPOSITORY, return the count of its statements."
   (declare (dynamic-extent args)
            (ignore repository service host port id))
   (with-effective-repository (the-repository args)
-    (rest (assoc :triple--count (dydra::repository-info (dydra::repository-service the-repository) the-repository)))))
+    (rest (assoc :triple--count (dydra::repository-info (dydra:repository-service the-repository) the-repository)))))
 
 
-(defun dydra::create (&rest args &key repository service host port id metadata)
+(defun dydra:create (&rest args &key repository service host port id metadata)
   "Given a REPOSITORY instance, create it in the respective service."
   (declare (dynamic-extent args)
            (ignore repository service host port id metadata))
   (with-effective-repository (the-repository args)
-    (dydra::repository-create (dydra::repository-service the-repository) the-repository)))
+    (dydra::repository-create (dydra:repository-service the-repository) the-repository)))
 
 
-(defun dydra::delete (&rest args &key repository service host port id)
+(defun dydra:delete (&rest args &key repository service host port id)
   "Given a REPOSITORY, remove it from the store."
   (declare (dynamic-extent args)
            (ignore repository service host port id))
   (with-effective-repository (the-repository args)
-    (dydra::repository-delete (dydra::repository-service the-repository) the-repository)))
+    (dydra::repository-delete (dydra:repository-service the-repository) the-repository)))
 
 
-(defun dydra::import (url &rest args &key repository service host port id base-uri context)
+(defun dydra:import (url &rest args &key repository service host port id base-uri context)
   "Given a URL and a REPOSITORY, import the resource's statements into the repository.
  Permit keyword arguments for context and base-uri tp be applied during the import process."
   (declare (ignore repository service host port id)
            (dynamic-extent args))
   (with-effective-repository (the-repository args)
-    (dydra::repository-import (dydra::repository-service the-repository) the-repository url
+    (dydra::repository-import (dydra:repository-service the-repository) the-repository url
                               :base-uri base-uri :context context)))
 
 
-(defun dydra::import-status (&rest args &key repository service host port id)
+(defun dydra:import-status (&rest args &key repository service host port id)
   "Given a REPOSITORY, return the status information for its most recent import operation."
   (declare (ignore repository service host port id)
            (dynamic-extent args))
   (with-effective-repository (the-repository args)
-    (dydra::repository-import-status (dydra::repository-service the-repository) the-repository)))
+    (dydra::repository-import-status (dydra:repository-service the-repository) the-repository)))
 
 
 (defgeneric dydra:info (subject &rest args)
   (:documentation "Return metadata about the Given repository or service.")
-  (:method ((repository dydra::repository) &key)
-    (dydra::repository-info (dydra::repository-service repository) repository))
+  (:method ((repository dydra:repository) &key)
+    (dydra::repository-info (dydra:repository-service repository) repository))
   (:method ((arg symbol) &rest args)
-    (dydra:info (apply #'dydra::repository arg args)))
-  (:method ((service dydra::service) &rest args)
+    (dydra:info (apply #'dydra:repository arg args)))
+  (:method ((service dydra:service) &rest args)
     (if args
-      (dydra:info (apply #'dydra::repository :service service args))
+      (dydra:info (apply #'dydra:repository :service service args))
       (dydra::service-info service))))
 
 (defun dydra:query (query-string &rest args &key repository service host port id query-language infer
@@ -589,18 +586,18 @@
   (with-effective-repository (the-repository args)
     (unless (search "select" query-string :test #'char-equal)
       (dydra::reset-repository-info the-repository))
-    (apply #'dydra::repository-query (dydra::repository-service the-repository) the-repository query-string
+    (apply #'dydra::repository-query (dydra:repository-service the-repository) the-repository query-string
            (remove-property args :repository :service :host :port :id))))
 
 
 (defun dydra:map-query (type function query-string &rest args &key
-                              ((:blank-nodes dydra::*blank-nodes*) (or dydra::*blank-nodes* (make-hash-table :test 'equal)))
-                              ((:uris dydra::*uris*) (or dydra::*uris* (make-hash-table :test 'equal)))
+                              ((:blank-nodes dydra:*blank-nodes*) (or dydra:*blank-nodes* (make-hash-table :test 'equal)))
+                              ((:uris dydra:*uris*) (or dydra:*uris* (make-hash-table :test 'equal)))
                               &allow-other-keys)
   "Given a QUERY-STRING and a REPOSITORY, apply the duery to the repository."
   (declare (dynamic-extent args))
   (setf args (remove-property args :blank-nodes :uris))
-  (let* ((solution-field (apply #'dydra::query query-string (remove-property args :uris :blank-nodes))))
+  (let* ((solution-field (apply #'dydra:query query-string (remove-property args :uris :blank-nodes))))
     (when solution-field
       (let* ((variable-names (rest (first solution-field)))
              (variables (mapcar #'make-symbol variable-names))
@@ -619,9 +616,9 @@
   (apply #'dydra:map-query 'list #'list query-string args))
 
 
-(defun dydra:repositories (&optional (repository (or dydra::*repository* (error "repository is required."))))
+(defun dydra:repositories (&optional (repository (or dydra:*repository* (error "repository is required."))))
   "Given a REPOSITORY return descriptions of the repositories present in the same account
  on the repository's service."
-  (dydra::account-repositories (dydra::repository-service repository) repository))
+  (dydra::account-repositories (dydra:repository-service repository) repository))
 
 

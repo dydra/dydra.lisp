@@ -28,6 +28,7 @@
            :*service*
            :*service-class*
            :*uris*
+           :account-repositories
            :authenticate
            :clear
            :count
@@ -36,9 +37,12 @@
            :import
            :import-status
            :info
-           :json-rpc-service
+           :json-error
+           :json-rpc-ervice
+           :json-rest-service
            :map-query
            :query
+           :query-values
            :repositories
            :repository
            :repository-account-name
@@ -48,9 +52,7 @@
            :rest-service
            :rpc-service
            :service
-           :xml-rpc-service
-           :json-rpc-ervice
-           :json-rest-service)
+           :xml-rpc-service)
   (:documentation "This is the home package for interface symbols for
     the Dydra storage service library. The exported symbols constitute the
     primary interface. in addition some lower level operator names are

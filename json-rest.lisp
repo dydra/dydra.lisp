@@ -11,7 +11,7 @@
 ;;;
 ;;; class
 
-(defclass dydra::json-rest-service (dydra::rest-service)
+(defclass dydra:json-rest-service (dydra:rest-service)
   ((protocol
     :initform :rest/json/http))
   (:documentation "A rest service instance which uses json to encode requests and responses."))
@@ -59,40 +59,40 @@
  :URI : (or string puri:uri) : an absolute URI to locate the service"
 
   (declare (dynamic-extent args))
-  (let ((dydra:*service-class* 'dydra::json-rest-service))
+  (let ((dydra:*service-class* 'dydra:json-rest-service))
     (apply #'dydra:service args)))
 
 ;;;
 ;;; service-specialized operators
 
 #-sesame-2.0
-(defmethod dydra::account-repositories ((service dydra::json-rest-service) (name string))
+(defmethod dydra::account-repositories ((service dydra:json-rest-service) (name string))
   (rest-request-accept-json service
                             (format nil "~a/~a/repositories"
                                     (dydra::service-url service) name)))
 #+sesame-2.0
-(defmethod dydra::account-repositories ((service dydra::json-rest-service) (name string))
+(defmethod dydra::account-repositories ((service dydra:json-rest-service) (name string))
   (rest-request-accept-json service
                             (format nil "~a/repositories/~a"
                                     (dydra::service-url service) name)))
 
 
 #-sesame-2.0                            ; 404 for "new"
-(defmethod dydra::repository-clear ((service dydra::json-rest-service) (repository-id string))
+(defmethod dydra::repository-clear ((service dydra:json-rest-service) (repository-id string))
   (multiple-value-bind (account-name repository-name) (repository-name-components repository-id)
     (rest-request-accept-json service (format nil "~a/~a/~a/clearRepository"
                                               (dydra::service-url service) account-name repository-name)
                             :method :delete)))
 
 #+sesame-2.0
-(defmethod dydra::repository-clear ((service dydra::json-rest-service) (repository-id string))
+(defmethod dydra::repository-clear ((service dydra:json-rest-service) (repository-id string))
   (rest-request-accept-json service (format nil "~a/repositories/~a/statements"
                                             (dydra::service-url service) repository-id)
                             :method :delete))
 
 
 #-sesame-2.0
-(defmethod dydra::repository-create ((service dydra::json-rest-service) (repository-id string))
+(defmethod dydra::repository-create ((service dydra:json-rest-service) (repository-id string))
   (multiple-value-bind (account-name repository-name) (repository-name-components repository-id)
     (rest-request-accept-json service (format nil "~a/~a/repositories"
                                               (dydra::service-url service) account-name)
@@ -103,14 +103,14 @@
                                                    repository-name)))))
 
 #+sesame-2.0
-(defmethod dydra::repository-create((service dydra::json-rest-service) (repository-id string))
+(defmethod dydra::repository-create((service dydra:json-rest-service) (repository-id string))
   (rest-request-accept-json service (format nil "~a/repositories/~a"
                                             (dydra::service-url service) repository-id)
                             :method :put
                             :content nil))
 
 
-(defmethod dydra::repository-delete ((service dydra::json-rest-service) (repository-id string))
+(defmethod dydra::repository-delete ((service dydra:json-rest-service) (repository-id string))
   (multiple-value-bind (account-name repository-name) (repository-name-components repository-id)
     (rest-request-accept-json service (format nil "~a/~a/~a"
                                               (dydra::service-url service) account-name repository-name)
@@ -118,7 +118,7 @@
 
 
 #-sesame-2.0
-(defmethod dydra::repository-import ((service dydra::json-rest-service)
+(defmethod dydra::repository-import ((service dydra:json-rest-service)
                                      (repository-id string) (resource-uri puri:uri) &key
                                      (context nil) (base-uri nil))
   "POST http://dydra.com/jhacker/clhs/uploadData?auth_token=xxxxx HTTP/x.x, Content-Type: <as per file>"
@@ -136,7 +136,7 @@
                                                ,@(when base-uri `("base_uri" . ,base-uri))
                                                ,@(when context `("context" . ,context))))))))
 #+sesame-2.0
-(defmethod dydra::repository-import ((service dydra::json-rest-service)
+(defmethod dydra::repository-import ((service dydra:json-rest-service)
                                      (repository-id string) (resource-uri puri:uri) &key
                                      (context nil) (base-uri nil))
   "POST http://dydra.com/jhacker/clhs/uploadData?auth_token=xxxxx HTTP/x.x, Content-Type: <as per file>"
@@ -162,30 +162,30 @@
 
 
 #-sesame-2.0
-(defmethod dydra::repository-import-status ((service dydra::json-rest-service) (repository-id string))
+(defmethod dydra::repository-import-status ((service dydra:json-rest-service) (repository-id string))
   (multiple-value-bind (account-name repository-name) (repository-name-components repository-id)
     (rest-request-accept-json service (format nil "~a/~a/~a/status"
                                               (dydra::service-url service) account-name repository-name))))
 
 #+sesame-2.0
-(defmethod dydra::repository-import-status ((service dydra::json-rest-service) (repository-id string))
+(defmethod dydra::repository-import-status ((service dydra:json-rest-service) (repository-id string))
   (rest-request-accept-json service (format nil "~a/repositories/~a/status"
                                             (dydra::service-url service) repository-id)))
 
 
 #-sesame-2.0
-(defmethod dydra::repository-info ((service dydra::json-rest-service) (repository-id string))
+(defmethod dydra::repository-info ((service dydra:json-rest-service) (repository-id string))
   (multiple-value-bind (account-name repository-name) (repository-name-components repository-id)
     (rest-request-accept-json service (format nil "~a/~a/~a/meta"
                                             (dydra::service-url service) account-name repository-name))))
 #+sesame-2.0
-(defmethod dydra::repository-info ((service dydra::json-rest-service) (repository-id string))
+(defmethod dydra::repository-info ((service dydra:json-rest-service) (repository-id string))
   (rest-request-accept-json service (format nil "~a/repositories/~a/meta"
                                             (dydra::service-url service) repository-id)))
 
 
 #-sesame-2.0
-(defmethod dydra::repository-query ((service dydra::json-rest-service) (repository-id string) (query string) &rest args
+(defmethod dydra::repository-query ((service dydra:json-rest-service) (repository-id string) (query string) &rest args
                                     &key (query-language nil) (infer nil) &allow-other-keys)
   (multiple-value-bind (account-name repository-name) (repository-name-components repository-id)
     (apply #'rest-request-accept-json service (format nil "~a/~a/~a/sparql"
@@ -201,7 +201,7 @@
 
 ;;; two versions. one for get w/ url encoded parameters and one for post with json-encoded parameters in the request body
 #+sesame-2.0+get-only
-(defmethod dydra::repository-query ((service dydra::json-rest-service) (repository-id string) (query string) &rest args
+(defmethod dydra::repository-query ((service dydra:json-rest-service) (repository-id string) (query string) &rest args
                                     &key query-language infer parameters &allow-other-keys)
   (apply #'rest-request-accept-json service (format nil "~a/repositories/~a" (dydra::service-url service) repository-id)
          :method :get
@@ -212,7 +212,7 @@
          (remove-property args :query-language :infer)))
 
 #+sesame-2.0
-(defmethod dydra::repository-query ((service dydra::json-rest-service) (repository-id string) (query string) &rest args
+(defmethod dydra::repository-query ((service dydra:json-rest-service) (repository-id string) (query string) &rest args
                                     &key query-language infer &allow-other-keys)
   (apply #'rest-request-accept-json service (format nil "~a/repositories/~a" (dydra::service-url service) repository-id)
          :method :post
@@ -226,10 +226,10 @@
 
 
 #-sesame-2.0
-(defmethod dydra::service-info ((service dydra::json-rest-service))
+(defmethod dydra::service-info ((service dydra:json-rest-service))
   (rest-request-accept-json service (format nil "~a/~a/repositories" (dydra::service-url service) (dydra::service-account-name service))))
 #+sesame-2.0
-(defmethod dydra::service-info ((service dydra::json-rest-service))
+(defmethod dydra::service-info ((service dydra:json-rest-service))
   (rest-request-accept-json service (format nil "~a/accounts/~a/meta" (dydra::service-url service) (dydra::service-account-name service))))
 
 
@@ -245,7 +245,7 @@
 (dydra:repositories dydra:*service*)   ; list the account's repositories
 
 (dydra:create :repository dydra:*repository*)          ; create a repository
-(find "api-test" (dydra::repositories dydra:*service*)       ; check just its info from the account
+(find "api-test" (dydra:repositories dydra:*service*)       ; check just its info from the account
       :test #'equal :key #'(lambda (i) (rest (assoc :name i))))
 (dydra:info dydra:*repository*)        ; check info on the repository itself
 (dydra:info :id "jhacker/api-test")
