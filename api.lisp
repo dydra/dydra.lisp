@@ -441,7 +441,8 @@
     (if (slot-boundp repository 'info-cache)
       (repository-info-cache repository)
       (let ((info (dydra::repository-info service (dydra::repository-id repository))))
-        (when info (setf (slot-value repository 'info-cache))))))
+        (when info
+          (setf (slot-value repository 'info-cache) info)))))
 
   (:method ((service dydra::rpc-service) (repository-id string))
     (rpc-call service "dydra.repository.info" `(:string ,repository-id))))
